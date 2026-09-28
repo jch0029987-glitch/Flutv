@@ -23,11 +23,12 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Set up Flutter SDK Manually
-        run: |
-          git clone https://github.com/flutter/flutter.git --branch stable --depth 1 _flutter
-          echo "$PWD/_flutter/bin" >> $GITHUB_PATH
-          flutter --version
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.x'
+          channel: 'stable'
+          cache: true
 
       - name: Install Dependencies
         run: flutter pub get
@@ -40,15 +41,15 @@ jobs:
           -storepass android -keypass android \
           -dname "CN=Android Debug, O=Android, C=US"
 
-      - name: Build Release APK
-        run: flutter build apk --release
+      - name: Build Target APK (ARMv7)
+        run: flutter build apk --release --target-platform android-arm
 
       - name: Publish to GitHub Releases
         uses: softprops/action-gh-release@v2
         with:
           tag_name: latest
           name: 'FluTv Latest Build'
-          body: 'Automated continuous build from main.'
+          body: 'Automated continuous build from main (ARMv7).'
           files: build/app/outputs/flutter-apk/app-release.apk
           prerelease: false
           make_latest: true
