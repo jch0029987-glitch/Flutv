@@ -23,12 +23,11 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v3
-        with:
-          flutter-version: '3.42.x'
-          channel: 'stable'
-          cache: true
+      - name: Set up Flutter SDK Manually
+        run: |
+          git clone https://github.com/flutter/flutter.git --branch stable --depth 1 _flutter
+          echo "$PWD/_flutter/bin" >> $GITHUB_PATH
+          flutter --version
 
       - name: Install Dependencies
         run: flutter pub get
