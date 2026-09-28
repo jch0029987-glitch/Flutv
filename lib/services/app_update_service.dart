@@ -46,8 +46,8 @@ class AppUpdateService {
         final file = File(filePath);
         await file.writeAsBytes(response.bodyBytes);
 
-        // Correct class name matching the package
-        await AndroidPackageInstaller.installApk(filePath: filePath);
+        // Correct lowercase plugin instance invocation
+        await flutterAndroidPackageInstaller.installApk(filePath: filePath);
       }
     } catch (_) {}
   }
