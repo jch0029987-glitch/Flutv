@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../services/app_service.dart';
 import '../../services/app_update_service.dart';
-import '../../services/web_server_service.dart'; // Import your web server service
-import '../settings_screen.dart';
+import '../../services/web_server_service.dart';
+import 'settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -27,23 +27,17 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _loadData();
-    
-    // Check for GitHub updates silently on startup
     _updateService.checkForUpdates('1.0.0+1');
-
-    // Start local web server (syncs dashboard from GitHub and listens on port 8080)
     _webServerService.startServer();
   }
 
   Future<void> _loadData() async {
-    // Load saved custom background wallpaper preference
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       _wallpaperPath = prefs.getString('custom_wallpaper');
     });
 
     try {
-      // Timeout after 4 seconds so the UI never hangs indefinitely if the channel is unhandled
       final apps = await _appService.getInstalledApps().timeout(
         const Duration(seconds: 4),
         onTimeout: () => [],
@@ -65,7 +59,6 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          // Dynamic Background Layer
           if (_wallpaperPath != null && _wallpaperPath!.isNotEmpty)
             Positioned.fill(
               child: _wallpaperPath!.startsWith('http')
@@ -77,7 +70,6 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Container(color: const Color(0xFF121212)),
             ),
           
-          // Dark overlay gradient to keep the app cards readable against custom backgrounds
           Positioned.fill(
             child: Container(
               decoration: BoxDecoration(
@@ -90,15 +82,13 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
 
-          // Main UI Content
           Padding(
             padding: const EdgeInsets.all(32.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header with Title and Settings Button
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.between,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text(
                       'flutv',
@@ -123,7 +113,6 @@ class _HomeScreenState extends State<HomeScreen> {
                                 context,
                                 MaterialPageRoute(builder: (context) => const SettingsScreen()),
                               );
-                              // Refresh wallpaper when returning from settings
                               _loadData();
                             },
                           );
@@ -134,7 +123,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 24),
                 
-                // App Grid / Content Area
                 Expanded(
                   child: _isLoading
                       ? const Center(child: CircularProgressIndicator())
