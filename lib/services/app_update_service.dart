@@ -5,7 +5,6 @@ import 'package:flutter_android_package_installer/flutter_android_package_instal
 import 'dart:convert';
 
 class AppUpdateService {
-  // Replace with your actual GitHub owner and repo
   static const String _repoOwner = 'jch0029987-glitch';
   static const String _repoName = 'flutv';
 
@@ -20,9 +19,7 @@ class AppUpdateService {
         final data = jsonDecode(response.body);
         final String latestTag = data['tag_name'] ?? '';
 
-        // Simple tag comparison (e.g., comparing "v1.0.1" against current version)
         if (latestTag.isNotEmpty && latestTag != 'v$currentVersion') {
-          // Find the APK asset URL from the release
           final assets = data['assets'] as List;
           final apkAsset = assets.firstWhere(
             (asset) => asset['name'].toString().endsWith('.apk'),
@@ -35,9 +32,7 @@ class AppUpdateService {
           }
         }
       }
-    } catch (e) {
-      // Fail silently on network or parse errors during startup check
-    }
+    } catch (_) {}
   }
 
   Future<void> _downloadAndInstall(String url) async {
@@ -51,11 +46,9 @@ class AppUpdateService {
         final file = File(filePath);
         await file.writeAsBytes(response.bodyBytes);
 
-        // Trigger installation using the correct package reference
+        // Correct invocation for flutter_android_package_installer
         await FlutterAndroidPackageInstaller.installApk(filePath: filePath);
       }
-    } catch (e) {
-      // Handle download or installation exception if necessary
-    }
+    } catch (_) {}
   }
 }
