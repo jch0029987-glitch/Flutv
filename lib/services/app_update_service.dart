@@ -46,7 +46,7 @@ class AppUpdateService {
         final file = File(filePath);
         await file.writeAsBytes(response.bodyBytes);
 
-        // Correct invocation for flutter_android_package_installer
+        // Uses the correct intent-based install method for flutter_android_package_installer
         await FlutterAndroidPackageInstaller.installApk(filePath: filePath);
       }
     } catch (_) {}
