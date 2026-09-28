@@ -1,0 +1,55 @@
+name: Build and Release FluTv
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v3
+        with:
+          flutter-version: '3.24.x'
+          channel: 'stable'
+          cache: true
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Generate Consistent Debug Keystore
+        run: |
+          keytool -genkey -v -keystore android/app/debug.keystore \
+          -keyalg RSA -keysize 2048 -validity 10000 \
+          -alias androiddebugkey \
+          -storepass android -keypass android \
+          -dname "CN=Android Debug, O=Android, C=US"
+
+      - name: Build Release APK
+        run: flutter build apk --release
+
+      - name: Publish to GitHub Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: 'FluTv Latest Build'
+          body: 'Automated continuous build from main.'
+          files: build/app/outputs/flutter-apk/app-release.apk
+          prerelease: false
+          make_latest: true
