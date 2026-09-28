@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
-import 'package:flutter_android_package_installer/flutter_android_package_installer.dart';
+import 'package:open_filex/open_filex.dart';
 import 'dart:convert';
 
 class AppUpdateService {
@@ -46,8 +46,8 @@ class AppUpdateService {
         final file = File(filePath);
         await file.writeAsBytes(response.bodyBytes);
 
-        // Correct lowercase plugin instance invocation
-        await flutterAndroidPackageInstaller.installApk(filePath: filePath);
+        // Clean, standard intent-based APK trigger with zero getter errors
+        await OpenFilex.open(filePath);
       }
     } catch (_) {}
   }
