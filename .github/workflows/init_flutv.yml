@@ -2,10 +2,6 @@ name: Initialize flutv Structure
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-
 jobs:
   scaffold:
     name: Generate Android-Only Flutter Project
