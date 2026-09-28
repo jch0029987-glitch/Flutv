@@ -21,6 +21,6 @@ flutter:
   uses-material-design: true
 
   # Register your assets folder for custom banners or fallbacks
-  assets:
-    -
+  
+  
 
