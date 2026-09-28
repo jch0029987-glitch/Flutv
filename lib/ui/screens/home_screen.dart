@@ -1,7 +1,11 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../services/app_service.dart';
 import '../../services/app_update_service.dart';
+import '../../services/web_server_service.dart'; // Import your web server service
+import '../settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -13,19 +17,31 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final AppService _appService = AppService();
   final AppUpdateService _updateService = AppUpdateService();
+  final WebServerService _webServerService = WebServerService();
+  
   List<AppInfo> _apps = [];
   bool _isLoading = true;
+  String? _wallpaperPath;
 
   @override
   void initState() {
     super.initState();
-    _loadApps();
+    _loadData();
     
     // Check for GitHub updates silently on startup
     _updateService.checkForUpdates('1.0.0+1');
+
+    // Start local web server (syncs dashboard from GitHub and listens on port 8080)
+    _webServerService.startServer();
   }
 
-  Future<void> _loadApps() async {
+  Future<void> _loadData() async {
+    // Load saved custom background wallpaper preference
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _wallpaperPath = prefs.getString('custom_wallpaper');
+    });
+
     try {
       // Timeout after 4 seconds so the UI never hangs indefinitely if the channel is unhandled
       final apps = await _appService.getInstalledApps().timeout(
@@ -47,100 +63,158 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Padding(
-        padding: const EdgeInsets.all(32.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header
-            const Text(
-              'flutv',
-              style: TextStyle(
-                fontSize: 36,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.5,
+      body: Stack(
+        children: [
+          // Dynamic Background Layer
+          if (_wallpaperPath != null && _wallpaperPath!.isNotEmpty)
+            Positioned.fill(
+              child: _wallpaperPath!.startsWith('http')
+                  ? Image.network(_wallpaperPath!, fit: BoxFit.cover, errorBuilder: (_, __, ___) => Container(color: const Color(0xFF121212)))
+                  : Image.file(File(_wallpaperPath!), fit: BoxFit.cover, errorBuilder: (_, __, ___) => Container(color: const Color(0xFF121212))),
+            )
+          else
+            Positioned.fill(
+              child: Container(color: const Color(0xFF121212)),
+            ),
+          
+          // Dark overlay gradient to keep the app cards readable against custom backgrounds
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Colors.black.withOpacity(0.6), Colors.black.withOpacity(0.9)],
+                ),
               ),
             ),
-            const SizedBox(height: 24),
-            
-            // App Grid / Content Area
-            Expanded(
-              child: _isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : _apps.isEmpty
-                      ? const Center(
-                          child: Text(
-                            'No apps found',
-                            style: TextStyle(fontSize: 18, color: Colors.white60),
-                          ),
-                        )
-                      : GridView.builder(
-                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 5,
-                            childAspectRatio: 16 / 9,
-                            crossAxisSpacing: 20,
-                            mainAxisSpacing: 20,
-                          ),
-                          itemCount: _apps.length,
-                          itemBuilder: (context, index) {
-                            final app = _apps[index];
-                            final decodedBytes = base64Decode(app.graphicBase64);
+          ),
 
-                            return Focus(
-                              child: Builder(
-                                builder: (BuildContext context) {
-                                  final bool isFocused = Focus.of(context).hasFocus;
-                                  return InkWell(
-                                    onTap: () => _appService.launchApp(app.packageName),
-                                    borderRadius: BorderRadius.circular(12),
-                                    child: AnimatedContainer(
-                                      duration: const Duration(milliseconds: 200),
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFF222222),
-                                        borderRadius: BorderRadius.circular(12),
-                                        border: Border.all(
-                                          color: isFocused ? Colors.blue : Colors.transparent,
-                                          width: 3.0,
-                                        ),
-                                        boxShadow: isFocused
-                                            ? [
-                                                const BoxShadow(
-                                                  color: Colors.blueAccent,
-                                                  blurRadius: 8,
-                                                  spreadRadius: 2,
-                                                )
-                                              ]
-                                            : [],
-                                      ),
-                                      padding: const EdgeInsets.all(12.0),
-                                      child: Column(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          Expanded(
-                                            child: Image.memory(decodedBytes),
-                                          ),
-                                          const SizedBox(height: 8),
-                                          Text(
-                                            app.name,
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              fontWeight: isFocused ? FontWeight.bold : FontWeight.normal,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  );
-                                },
+          // Main UI Content
+          Padding(
+            padding: const EdgeInsets.all(32.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header with Title and Settings Button
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.between,
+                  children: [
+                    const Text(
+                      'flutv',
+                      style: TextStyle(
+                        fontSize: 36,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.5,
+                        color: Colors.white,
+                      ),
+                    ),
+                    Focus(
+                      child: Builder(
+                        builder: (context) {
+                          final bool isFocused = Focus.of(context).hasFocus;
+                          return IconButton(
+                            icon: const Icon(Icons.settings, color: Colors.white, size: 28),
+                            style: ButtonStyle(
+                              backgroundColor: WidgetStateProperty.all(isFocused ? Colors.blue : Colors.white24),
+                            ),
+                            onPressed: () async {
+                              await Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => const SettingsScreen()),
+                              );
+                              // Refresh wallpaper when returning from settings
+                              _loadData();
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                
+                // App Grid / Content Area
+                Expanded(
+                  child: _isLoading
+                      ? const Center(child: CircularProgressIndicator())
+                      : _apps.isEmpty
+                          ? const Center(
+                              child: Text(
+                                'No apps found',
+                                style: TextStyle(fontSize: 18, color: Colors.white60),
                               ),
-                            );
-                          },
-                        ),
+                            )
+                          : GridView.builder(
+                              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 5,
+                                childAspectRatio: 16 / 9,
+                                crossAxisSpacing: 20,
+                                mainAxisSpacing: 20,
+                              ),
+                              itemCount: _apps.length,
+                              itemBuilder: (context, index) {
+                                final app = _apps[index];
+                                final decodedBytes = base64Decode(app.graphicBase64);
+
+                                return Focus(
+                                  child: Builder(
+                                    builder: (BuildContext context) {
+                                      final bool isFocused = Focus.of(context).hasFocus;
+                                      return InkWell(
+                                        onTap: () => _appService.launchApp(app.packageName),
+                                        borderRadius: BorderRadius.circular(12),
+                                        child: AnimatedContainer(
+                                          duration: const Duration(milliseconds: 200),
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFF222222).withOpacity(0.8),
+                                            borderRadius: BorderRadius.circular(12),
+                                            border: Border.all(
+                                              color: isFocused ? Colors.blue : Colors.transparent,
+                                              width: 3.0,
+                                            ),
+                                            boxShadow: isFocused
+                                                ? [
+                                                    const BoxShadow(
+                                                      color: Colors.blueAccent,
+                                                      blurRadius: 8,
+                                                      spreadRadius: 2,
+                                                    )
+                                                  ]
+                                                : [],
+                                          ),
+                                          padding: const EdgeInsets.all(12.0),
+                                          child: Column(
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: [
+                                              Expanded(
+                                                child: Image.memory(decodedBytes),
+                                              ),
+                                              const SizedBox(height: 8),
+                                              Text(
+                                                app.name,
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  color: Colors.white,
+                                                  fontWeight: isFocused ? FontWeight.bold : FontWeight.normal,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                );
+                              },
+                            ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
