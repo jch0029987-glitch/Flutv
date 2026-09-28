@@ -13,7 +13,8 @@ import io.flutter.plugin.common.MethodChannel
 import java.io.ByteArrayOutputStream
 
 class MainActivity: FlutterActivity() {
-    private val CHANNEL = "com.flutv/apps"
+    // Match the exact channel name defined in app_service.dart
+    private val CHANNEL = "com.flutv.flutv/apps"
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -62,7 +63,7 @@ class MainActivity: FlutterActivity() {
             val appMap = mapOf(
                 "name" to appName,
                 "packageName" to packageName,
-                "graphic" to base64Graphic
+                "graphicBase64" to base64Graphic // Match the key expected by AppInfo.fromMap
             )
             appList.add(appMap)
         }
