@@ -5,12 +5,10 @@ on:
   push:
     branches:
       - main
-    paths:
-      - 'template/**'
 
 jobs:
   scaffold:
-    name: Scaffold Project from Templates
+    name: Generate Android-Only Flutter Project
     runs-on: ubuntu-latest
 
     permissions:
@@ -20,24 +18,18 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Flutter SDK
+      - name: Set up Flutter SDK (Latest Stable)
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.x'
+          flutter-version: '3.47.x'
           channel: 'stable'
+          cache: true
 
-      - name: Create Flutter Project Skeleton
+      - name: Run Flutter Create (Android Only)
         run: |
-          flutter create . --org com.flutv --project-name flutv --empty
+          flutter create . --org com.flutv --project-name flutv --platforms=android
 
-      - name: Overlay Template Files
-        run: |
-          # Copy template assets over the standard flutter scaffolding
-          if [ -d "template" ]; then
-            cp -r template/* .
-          fi
-
-      - name: Commit and Push Scaffolding
+      - name: Commit and Push Generated Files
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -45,6 +37,6 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add .
           git diff --quiet && git diff --staged --quiet || {
-            git commit -m "chore: apply flutv template structure"
+            git commit -m "chore: generate android-only flutter structure"
             git push origin main
           }
