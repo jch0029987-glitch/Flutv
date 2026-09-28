@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../../services/app_service.dart';
+import '../../services/app_update_service.dart'; // Import the update service
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -11,6 +12,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final AppService _appService = AppService();
+  final AppUpdateService _updateService = AppUpdateService(); // Instantiate update service
   List<AppInfo> _apps = [];
   bool _isLoading = true;
 
@@ -18,6 +20,9 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _loadApps();
+    
+    // Check for GitHub updates silently on startup (matches your version in pubspec.yaml)
+    _updateService.checkForUpdates('1.0.0+1');
   }
 
   Future<void> _loadApps() async {
