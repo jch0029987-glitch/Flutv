@@ -22,6 +22,9 @@ class _HomeScreenState extends State<HomeScreen> {
   List<AppInfo> _apps = [];
   bool _isLoading = true;
   String? _wallpaperPath;
+  
+  // Focus node specifically for the settings button to ensure reliable TV remote interaction
+  final FocusNode _settingsFocusNode = FocusNode();
 
   @override
   void initState() {
@@ -29,6 +32,12 @@ class _HomeScreenState extends State<HomeScreen> {
     _loadData();
     _updateService.checkForUpdates('1.0.0+1');
     _webServerService.startServer();
+  }
+
+  @override
+  void dispose() {
+    _settingsFocusNode.dispose();
+    super.dispose();
   }
 
   Future<void> _loadData() async {
@@ -52,6 +61,14 @@ class _HomeScreenState extends State<HomeScreen> {
         _isLoading = false;
       });
     }
+  }
+
+  Future<void> _openSettings(BuildContext context) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const SettingsScreen()),
+    );
+    _loadData();
   }
 
   @override
@@ -90,7 +107,7 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header Bar with Focusable Settings Icon
+                // Header Bar with TV-Optimized Focusable Settings Icon
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -103,35 +120,38 @@ class _HomeScreenState extends State<HomeScreen> {
                         color: Colors.white,
                       ),
                     ),
-                    Focus(
-                      child: Builder(
-                        builder: (context) {
-                          final bool isFocused = Focus.of(context).hasFocus;
-                          return InkWell(
-                            onTap: () async {
-                              await Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (context) => const SettingsScreen()),
-                              );
-                              _loadData();
-                            },
-                            borderRadius: BorderRadius.circular(12),
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 200),
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: isFocused ? Colors.blue : Colors.white24,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: isFocused ? Colors.white : Colors.transparent,
-                                  width: 2.0,
-                                ),
+                    AnimatedBuilder(
+                      animation: _settingsFocusNode,
+                      builder: (context, child) {
+                        final bool isFocused = _settingsFocusNode.hasFocus;
+                        return InkWell(
+                          focusNode: _settingsFocusNode,
+                          onTap: () => _openSettings(context),
+                          borderRadius: BorderRadius.circular(12),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: isFocused ? Colors.blue : Colors.white24,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: isFocused ? Colors.white : Colors.transparent,
+                                width: 2.0,
                               ),
-                              child: const Icon(Icons.settings, color: Colors.white, size: 28),
+                              boxShadow: isFocused
+                                  ? [
+                                      const BoxShadow(
+                                        color: Colors.blueAccent,
+                                        blurRadius: 8,
+                                        spreadRadius: 2,
+                                      )
+                                    ]
+                                  : [],
                             ),
-                          );
-                        },
-                      ),
+                            child: const Icon(Icons.settings, color: Colors.white, size: 28),
+                          ),
+                        );
+                      },
                     ),
                   ],
                 ),
