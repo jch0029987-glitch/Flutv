@@ -59,6 +59,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       body: Stack(
         children: [
+          // Wallpaper Background
           if (_wallpaperPath != null && _wallpaperPath!.isNotEmpty)
             Positioned.fill(
               child: _wallpaperPath!.startsWith('http')
@@ -70,6 +71,7 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Container(color: const Color(0xFF121212)),
             ),
           
+          // Dark Gradient Overlay
           Positioned.fill(
             child: Container(
               decoration: BoxDecoration(
@@ -82,11 +84,13 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
 
+          // Main Layout
           Padding(
             padding: const EdgeInsets.all(32.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Header Bar with Focusable Settings Icon
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -103,18 +107,28 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: Builder(
                         builder: (context) {
                           final bool isFocused = Focus.of(context).hasFocus;
-                          return IconButton(
-                            icon: const Icon(Icons.settings, color: Colors.white, size: 28),
-                            style: ButtonStyle(
-                              backgroundColor: WidgetStateProperty.all(isFocused ? Colors.blue : Colors.white24),
-                            ),
-                            onPressed: () async {
+                          return InkWell(
+                            onTap: () async {
                               await Navigator.push(
                                 context,
                                 MaterialPageRoute(builder: (context) => const SettingsScreen()),
                               );
                               _loadData();
                             },
+                            borderRadius: BorderRadius.circular(12),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: isFocused ? Colors.blue : Colors.white24,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: isFocused ? Colors.white : Colors.transparent,
+                                  width: 2.0,
+                                ),
+                              ),
+                              child: const Icon(Icons.settings, color: Colors.white, size: 28),
+                            ),
                           );
                         },
                       ),
@@ -123,6 +137,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 24),
                 
+                // App Grid Area
                 Expanded(
                   child: _isLoading
                       ? const Center(child: CircularProgressIndicator())
