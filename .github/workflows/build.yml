@@ -49,12 +49,26 @@ jobs:
       - name: Build Target APK (ARMv7)
         run: flutter build apk --release --target-platform android-arm
 
-      - name: Publish to GitHub Releases
+      - name: Generate Version Tag
+        id: version
+        run: |
+          VERSION="v1.0.${{ github.run_number }}"
+          echo "tag=$VERSION" >> $GITHUB_OUTPUT
+          echo "Generated version: $VERSION"
+
+      - name: Create Git Tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.io"
+          git tag ${{ steps.version.outputs.tag }}
+          git push origin ${{ steps.version.outputs.tag }}
+
+      - name: Publish Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: latest
-          name: 'FluTv Latest Build'
-          body: 'Automated signed continuous build from main (ARMv7).'
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: 'FluTv Build ${{ steps.version.outputs.tag }}'
+          body: 'Automated signed release build from main (ARMv7).'
           files: build/app/outputs/flutter-apk/app-release.apk
           prerelease: false
           make_latest: true
