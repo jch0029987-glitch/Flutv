@@ -1,0 +1,64 @@
+name: Generate & Upload Keystore Secrets
+
+on:
+  workflow_dispatch:
+    inputs:
+      github_pat:
+        description: 'GitHub Personal Access Token (with repo/secrets permission)'
+        required: true
+        type: string
+      keystore_password:
+        description: 'Keystore Password (min 6 chars)'
+        required: true
+        default: 'android'
+        type: string
+      key_alias:
+        description: 'Key Alias'
+        required: true
+        default: 'key'
+        type: string
+      key_password:
+        description: 'Key Password (min 6 chars)'
+        required: true
+        default: 'android'
+        type: string
+
+jobs:
+  generate-secrets:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Generate Keystore Locally in Runner
+        run: |
+          keytool -genkey -v -keystore upload-keystore.jks \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -alias "${{ inputs.key_alias }}" \
+            -storepass "${{ inputs.keystore_password }}" \
+            -keypass "${{ inputs.key_password }}" \
+            -dname "CN=Flutv Developer, OU=AndroidTV, O=Flutv, L=Local, ST=State, C=US"
+          
+          echo "Keystore generated successfully."
+
+      - name: Upload Keystore & Credentials to GitHub Secrets
+        env:
+          GH_TOKEN: ${{ inputs.github_pat }}
+        run: |
+          # Encode generated JKS to base64
+          ENCODED_KEYSTORE=$(base64 -w 0 upload-keystore.jks)
+          
+          # Push everything securely to GitHub repository secrets
+          echo "$ENCODED_KEYSTORE" | gh secret set KEYSTORE_BASE64 --repo "${{ github.repository }}"
+          echo "${{ inputs.keystore_password }}" | gh secret set KEYSTORE_PASSWORD --repo "${{ github.repository }}"
+          echo "${{ inputs.key_alias }}" | gh secret set KEY_ALIAS --repo "${{ github.repository }}"
+          echo "${{ inputs.key_password }}" | gh secret set KEY_PASSWORD --repo "${{ github.repository }}"
+          
+          echo "Successfully uploaded all signing secrets to repository!"
