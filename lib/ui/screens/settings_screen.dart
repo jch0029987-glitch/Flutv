@@ -43,18 +43,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
     });
 
     try {
-      await _updateService.checkForUpdates('1.0.0+1');
+      // Pass a progress callback to track download percentage in real-time
+      await _updateService.checkForUpdatesWithProgress('1.0.0+1', (progress, statusText) {
+        if (!mounted) return;
+        setState(() {
+          int percent = (progress * 100).toInt();
+          _statusMessage = percent > 0 ? '$statusText ($percent%)' : statusText;
+        });
+      });
+
       setState(() {
-        _statusMessage = 'Update check complete. If a newer version exists, download will start.';
+        _statusMessage = 'Update process completed.';
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
-        _statusMessage = 'Failed to check for updates.';
+        _statusMessage = 'Failed to check or download update: $e';
       });
     } finally {
-      setState(() {
-        _isCheckingUpdate = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isCheckingUpdate = false;
+        });
+      }
     }
   }
 
@@ -74,7 +85,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const Text('System & Updates', style: TextStyle(color: Colors.blueAccent, fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
             _buildTvButton(
-              label: _isCheckingUpdate ? 'Checking...' : 'Check for GitHub Updates',
+              label: _isCheckingUpdate ? 'Processing Update...' : 'Check for GitHub Updates',
               onPressed: _isCheckingUpdate ? null : _manualUpdateCheck,
             ),
             const SizedBox(height: 30),
@@ -98,9 +109,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             const SizedBox(height: 30),
             if (_statusMessage.isNotEmpty)
-              Text(
-                _statusMessage,
-                style: const TextStyle(color: Colors.greenAccent, fontSize: 14),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _statusMessage,
+                    style: const TextStyle(color: Colors.greenAccent, fontSize: 14),
+                  ),
+                  if (_isCheckingUpdate) ...[
+                    const SizedBox(height: 12),
+                    const LinearProgressIndicator(
+                      backgroundColor: Colors.white24,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.blueAccent),
+                    ),
+                  ],
+                ],
               ),
           ],
         ),
