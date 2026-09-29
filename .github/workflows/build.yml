@@ -30,16 +30,21 @@ jobs:
           channel: 'stable'
           cache: true
 
+      - name: Decode Production Keystore from Secrets
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/upload-keystore.jks
+
+      - name: Generate key.properties for Signing
+        run: |
+          cat << EOF > android/key.properties
+          storePassword=${{ secrets.KEYSTORE_PASSWORD }}
+          keyPassword=${{ secrets.KEY_PASSWORD }}
+          keyAlias=${{ secrets.KEY_ALIAS }}
+          storeFile=upload-keystore.jks
+          EOF
+
       - name: Install Dependencies
         run: flutter pub get
-
-      - name: Generate Consistent Debug Keystore
-        run: |
-          keytool -genkey -v -keystore android/app/debug.keystore \
-          -keyalg RSA -keysize 2048 -validity 10000 \
-          -alias androiddebugkey \
-          -storepass android -keypass android \
-          -dname "CN=Android Debug, O=Android, C=US"
 
       - name: Build Target APK (ARMv7)
         run: flutter build apk --release --target-platform android-arm
@@ -49,7 +54,7 @@ jobs:
         with:
           tag_name: latest
           name: 'FluTv Latest Build'
-          body: 'Automated continuous build from main (ARMv7).'
+          body: 'Automated signed continuous build from main (ARMv7).'
           files: build/app/outputs/flutter-apk/app-release.apk
           prerelease: false
           make_latest: true
