@@ -43,8 +43,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     });
 
     try {
-      // Pass a progress callback to track download percentage in real-time
-      await _updateService.checkForUpdatesWithProgress('1.0.0+1', (progress, statusText) {
+      // Corrected to call checkForUpdates with the progress callback
+      await _updateService.checkForUpdates('1.0.0+1', onProgress: (progress, statusText) {
         if (!mounted) return;
         setState(() {
           int percent = (progress * 100).toInt();
