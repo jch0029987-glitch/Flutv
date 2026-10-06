@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../services/app_service.dart';
 import '../../services/app_update_service.dart';
@@ -120,38 +121,49 @@ class _HomeScreenState extends State<HomeScreen> {
                         color: Colors.white,
                       ),
                     ),
-                    AnimatedBuilder(
-                      animation: _settingsFocusNode,
-                      builder: (context, child) {
-                        final bool isFocused = _settingsFocusNode.hasFocus;
-                        return InkWell(
-                          focusNode: _settingsFocusNode,
-                          onTap: () => _openSettings(context),
-                          borderRadius: BorderRadius.circular(12),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: isFocused ? Colors.blue : Colors.white24,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: isFocused ? Colors.white : Colors.transparent,
-                                width: 2.0,
-                              ),
-                              boxShadow: isFocused
-                                  ? [
-                                      const BoxShadow(
-                                        color: Colors.blueAccent,
-                                        blurRadius: 8,
-                                        spreadRadius: 2,
-                                      )
-                                    ]
-                                  : [],
-                            ),
-                            child: const Icon(Icons.settings, color: Colors.white, size: 28),
-                          ),
-                        );
+                    Focus(
+                      focusNode: _settingsFocusNode,
+                      onKeyEvent: (node, event) {
+                        if (event is KeyDownEvent &&
+                            (event.logicalKey == LogicalKeyboardKey.select ||
+                             event.logicalKey == LogicalKeyboardKey.enter ||
+                             event.logicalKey == LogicalKeyboardKey.space)) {
+                          _openSettings(context);
+                          return KeyEventResult.handled;
+                        }
+                        return KeyEventResult.ignored;
                       },
+                      child: Builder(
+                        builder: (context) {
+                          final bool isFocused = Focus.of(context).hasFocus;
+                          return InkWell(
+                            onTap: () => _openSettings(context),
+                            borderRadius: BorderRadius.circular(12),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: isFocused ? Colors.blue : Colors.white24,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: isFocused ? Colors.white : Colors.transparent,
+                                  width: 2.0,
+                                ),
+                                boxShadow: isFocused
+                                    ? [
+                                        const BoxShadow(
+                                          color: Colors.blueAccent,
+                                          blurRadius: 8,
+                                          spreadRadius: 2,
+                                        )
+                                      ]
+                                    : [],
+                              ),
+                              child: const Icon(Icons.settings, color: Colors.white, size: 28),
+                            ),
+                          );
+                        },
+                      ),
                     ),
                   ],
                 ),
